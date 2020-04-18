@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Pomodoro App for Slack
+
+Parameters:
+  StartEventScheduleExpression:
+    Type: String
+    Default: "cron(0,30 0-3,4-8 ? * MON-FRI *)"
+
+  EndEventScheduleExpression:
+    Type: String
+    Default: "cron(25,55 0-3,4-8 ? * MON-FRI *)"
+
+  StartEventMessage:
+    Type: String
+    Default: "Pomodoro Start!"
+
+  EndEventMessage:
+    Type: String
+    Default: "Pomodoro End!"
+
+  SlackWebhookURL:
+    Type: String
+
+Resources:
+  PomodoroLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.lambda_handler
+      Runtime: ruby2.7
+      FunctionName: PomodoroLambda
+      Timeout: 60
+      Environment:
+        Variables:
+          'SLACK_WEBHOOK_URL': !Ref SlackWebhookURL
+
+  PomodoroStartEvent:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: pomodoro_start_event
+      ScheduleExpression: !Ref StartEventScheduleExpression
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt PomodoroLambda.Arn
+          Id: pomodoro_start
+          Input: !Join
+            - ''
+            - - "{\"message\": \""
+              - !Ref StartEventMessage
+              - "\"}"
+
+  PomodoroEndEvent:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: pomodoro_end_event
+      ScheduleExpression: !Ref EndEventScheduleExpression
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt PomodoroLambda.Arn
+          Id: pomodoro_end
+          Input: !Join
+            - ''
+            - - "{\"message\": \""
+              - !Ref EndEventMessage
+              - "\"}"
+
+  PomodoroStartEventPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt PomodoroLambda.Arn
+      Principal: 'events.amazonaws.com'
+      SourceArn: !GetAtt PomodoroStartEvent.Arn
+
+  PomodoroEndEventPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt PomodoroLambda.Arn
+      Principal: 'events.amazonaws.com'
+      SourceArn: !GetAtt PomodoroEndEvent.Arn
