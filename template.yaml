@@ -5,11 +5,11 @@ Description: Pomodoro App for Slack
 Parameters:
   StartEventScheduleExpression:
     Type: String
-    Default: "cron(0,30 0-3,4-8 ? * MON-FRI *)"
+    Default: "cron(0,30 0-2,4-8 ? * MON-FRI *)"
 
   EndEventScheduleExpression:
     Type: String
-    Default: "cron(25,55 0-3,4-8 ? * MON-FRI *)"
+    Default: "cron(25,55 0-2,4-8 ? * MON-FRI *)"
 
   StartEventMessage:
     Type: String
